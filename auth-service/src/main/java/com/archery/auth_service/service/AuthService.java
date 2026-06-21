@@ -1,6 +1,7 @@
 package com.archery.auth_service.service;
 
 
+import com.archery.auth_service.model.RefreshToken;
 import com.archery.auth_service.response.AuthResponse;
 import com.archery.auth_service.dto.LoginRequest;
 import com.archery.auth_service.dto.RegisterRequest;
@@ -25,13 +26,15 @@ public class AuthService {
     private final UserRepository repo;
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(BCryptPasswordEncoder bCryptPasswordEncoder, UserRepository repo,
-                       AuthenticationManager authenticationManager, JWTService jwtService) {
+                       AuthenticationManager authenticationManager, JWTService jwtService, RefreshTokenService refreshTokenService) {
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.repo = repo;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public String register(RegisterRequest req) {
@@ -61,7 +64,9 @@ public class AuthService {
         }
         UserDetails userDetails = new UserPrincipal(user);
         String token = jwtService.generateToken(userDetails);
-        AuthResponse authResponse = new AuthResponse(token);
+
+        RefreshToken refreshToken = refreshTokenService.generateRefreshToken(String.valueOf(loginRequest.getCid()));
+        AuthResponse authResponse = new AuthResponse(token,refreshToken.getToken());
         System.out.println("Auth Response: " + authResponse);
         return authResponse;
 
@@ -99,6 +104,22 @@ public class AuthService {
         repo.save(user);
     }
 
+    // Refresh
+    public AuthResponse refreshToken(String refreshToken) {
+        RefreshToken refreshTokenObj = refreshTokenService.validateRefreshToken(refreshToken);
+        User user = repo.findByCid(refreshTokenObj.getCid()).orElseThrow(() -> new RuntimeException("User not found"));
+        String newAccessToken = jwtService.generateToken(new UserPrincipal(user));
+        return new  AuthResponse(newAccessToken,refreshTokenObj.getToken());
+    }
+    //logout
+    public String logout(String refreshToken) {
+
+        RefreshToken token = refreshTokenService.validateRefreshToken(refreshToken);
+
+        refreshTokenService.deleteRefreshToken(token);
+
+        return "Logged out successfully";
+    }
 
 
 

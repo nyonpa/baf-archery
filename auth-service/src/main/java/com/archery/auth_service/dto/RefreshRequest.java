@@ -1,16 +1,12 @@
 package com.archery.auth_service.dto;
 
-
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Data
-@AllArgsConstructor
 @Getter
 @Setter
-public class LoginRequest {
-    private String cid;
-    private String password;
+@AllArgsConstructor
+public class RefreshRequest {
+    private String refreshToken;
 }

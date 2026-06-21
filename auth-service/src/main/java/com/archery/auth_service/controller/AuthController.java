@@ -2,6 +2,8 @@ package com.archery.auth_service.controller;
 
 
 import com.archery.auth_service.dto.LoginRequest;
+import com.archery.auth_service.dto.LogoutRequest;
+import com.archery.auth_service.dto.RefreshRequest;
 import com.archery.auth_service.dto.RegisterRequest;
 import com.archery.auth_service.response.AuthResponse;
 import com.archery.auth_service.response.UserResponse;
@@ -42,6 +44,20 @@ public class AuthController {
     public ResponseEntity<String>  activate(@PathVariable String cid) {
         authService.activateUser(cid);
         return ResponseEntity.ok("Activated");
+    }
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(
+                authService.refreshToken(request.getRefreshToken())
+        );
+    }
+
+    // 🔥 NEW: LOGOUT
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody LogoutRequest request) {
+        return ResponseEntity.ok(
+                authService.logout(request.getRefreshToken())
+        );
     }
 
 }
