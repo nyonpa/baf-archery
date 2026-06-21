@@ -30,8 +30,7 @@ public class JwtFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException
     {
-        //what is received from client side
-        // Bearer + jwt token, process it and cut out the bearer. Bearer 2342123109uyuy23
+
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
