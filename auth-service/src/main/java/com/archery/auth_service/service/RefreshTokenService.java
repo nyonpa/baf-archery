@@ -3,10 +3,11 @@ package com.archery.auth_service.service;
 import com.archery.auth_service.model.RefreshToken;
 import com.archery.auth_service.repository.RefreshTokenRepository;
 import jakarta.persistence.Column;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+@Service
 public class RefreshTokenService
 {
     private final RefreshTokenRepository refreshTokenRepository;
@@ -39,7 +40,8 @@ public class RefreshTokenService
         return refreshToken;
     }
     public void deleteRefreshToken(RefreshToken token)
-    {
+    {   String cid = token.getCid();
+        System.out.println("Deleting Refresh Token: " + cid);
         refreshTokenRepository.delete(token);
     }
 }
