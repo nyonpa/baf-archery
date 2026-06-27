@@ -17,6 +17,7 @@ public class AdminController {
     }
     @PutMapping("/promote/player/{cid}")
     public ResponseEntity<String> promotePlayer(@PathVariable String cid) {
+        System.out.println("Promote Player: " + cid);
         authService.grantRole(cid, Role.PLAYER);
         return ResponseEntity.ok("PLAYER role granted");
     }

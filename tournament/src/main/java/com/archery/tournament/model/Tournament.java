@@ -22,17 +22,21 @@ public class Tournament {
     @Column(nullable=false)
     private String Name;
     private String location;
-
     private LocalDate StartDate;
     private LocalDate EndDate;
-
     @Enumerated(EnumType.STRING)
-    private TournamentStatus status = TournamentStatus.UPCOMING;
+    private TournamentStatus status = TournamentStatus.DRAFT;
     @Enumerated(EnumType.STRING)
     private TournamentType tournamentType = TournamentType.BF1;
+    private Integer seededArcher;
     @Column(nullable=false)
     private String organizerCid;
     @ElementCollection
+    @CollectionTable(
+            name = "tournament_teams",
+            joinColumns = @JoinColumn(name = "tournament_id")
+    )
+    @Column(name = "team_id")
     private Set<String> registeredTeams = new HashSet<String>();
 
 }

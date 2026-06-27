@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -18,9 +19,16 @@ public class Team {
 
     @Column(unique=true, nullable=false)
     private String teamName;
-    @Column(unique=true, nullable=false)
+    @Column(nullable=false)
     private String captainCid;
     @ElementCollection
-    private Set<String> members = new HashSet<>();
-    private int maxMembers = 5;
+    @CollectionTable(
+            name ="team_archers",
+            joinColumns = @JoinColumn(name="team_id")
+    )
+    @Column(name="archer_cid")
+    private Set<String> archerCid = new HashSet<>();
+    private Long tournamentId;
+    private Integer maxArchers;
+    private Integer maxSeededArchers;
 }

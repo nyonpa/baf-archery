@@ -22,33 +22,16 @@ public class SecurityConfig {
     private UserDetailsService userDetailsService;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
-                .csrf(customizer -> customizer.disable())
-                .authorizeHttpRequests(requests -> requests
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-
-                        .requestMatchers("/organizer/**")
-                        .hasRole("ORGANIZER")
-
-                        .requestMatchers("/captain/**")
-                        .hasRole("TEAM_CAPTAIN")
-
-                        .requestMatchers("/admin/**")
-                        .hasRole("ADMIN")
-
-                        .requestMatchers("/player/**")
-                        .hasRole("PLAYER")
-                        .requestMatchers("/user/**")
-                        .hasRole("USER")
-
-                        .anyRequest().authenticated())
-             //   .httpBasic(Customizer.withDefaults())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .anyRequest().permitAll()
+                )
                 .build();
+
     }
     @Bean
     public AuthenticationProvider authenticationProvider() {

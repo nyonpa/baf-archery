@@ -50,16 +50,11 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest loginRequest) {
 
-        System.out.println("Login Request: " + loginRequest);
-        System.out.println("Step 1: Before Authentication");
-        System.out.println("Step 2: cid"+ loginRequest.getCid());
-        System.out.println("Step 3: password"+ loginRequest.getPassword());
         Authentication authentication =  authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                                 loginRequest.getCid(),
                             loginRequest.getPassword()
                 ));
-        System.out.println("Step 2: After Authentication");
         User user = repo.findByCid(loginRequest.getCid())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if(! user.isActive())
@@ -92,6 +87,7 @@ public class AuthService {
 
     // assign roles
     public void grantRole(String userCid, Role role) {
+        System.out.println("Grant Role: " + role);
         User user = repo.findByCid(userCid).orElseThrow(() -> new RuntimeException("User not found"));
         user.getRoles().add(role);
         repo.save(user);
@@ -119,7 +115,7 @@ public class AuthService {
     public String logout(String refreshToken) {
 
         RefreshToken token = refreshTokenService.validateRefreshToken(refreshToken);
-
+        System.out.println("Refresh Token: " + token);
         refreshTokenService.deleteRefreshToken(token);
 
         return "Logged out successfully";

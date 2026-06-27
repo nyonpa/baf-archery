@@ -1,189 +1,111 @@
 package com.archery.score_service.service;
 
-import com.archery.score_service.dto.MatchScoreSummary;
-import com.archery.score_service.model.*;
-import com.archery.score_service.repository.*;
+import com.archery.score_service.dto.CreateArcherMatchScore;
+import com.archery.score_service.dto.CreateMatch;
+import com.archery.score_service.dto.CreateRoundScore;
+import com.archery.score_service.dto.CreateTeamMatchScore;
+import com.archery.score_service.model.ArcherMatchScore;
+import com.archery.score_service.model.Match;
+import com.archery.score_service.model.RoundScore;
+import com.archery.score_service.model.TeamMatchScore;
+import com.archery.score_service.repository.ArcherMatchScoreRepository;
+import com.archery.score_service.repository.MatchRepository;
+import com.archery.score_service.repository.RoundScoreRepository;
+import com.archery.score_service.repository.TeamMatchScoreRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @Service
 public class ScoreService {
+    private final MatchRepository matchRepository;
+    private final TeamMatchScoreRepository teamMatchScoreRepository;
+    private final RoundScoreRepository roundScoreRepository;
+    private final ArcherMatchScoreRepository archerMatchScoreRepository;
 
-    private final ArrowRepository arrowRepository;
-    private final ArcherScoreRepository archerScoreRepository;
-    private final TeamScoreRepository teamScoreRepository;
-    private final MatchScoreRepository matchScoreRepository;
-
-    public ScoreService(
-            ArrowRepository arrowRepository,
-            ArcherScoreRepository archerScoreRepository,
-            TeamScoreRepository teamScoreRepository,
-            MatchScoreRepository matchScoreRepository
-    ) {
-        this.arrowRepository = arrowRepository;
-        this.archerScoreRepository = archerScoreRepository;
-        this.teamScoreRepository = teamScoreRepository;
-        this.matchScoreRepository = matchScoreRepository;
+    public ScoreService(MatchRepository matchRepository,
+                        TeamMatchScoreRepository teamMatchScoreRepository,
+                        RoundScoreRepository roundScoreRepository,
+                        ArcherMatchScoreRepository archerMatchScoreRepository)
+    {
+        this.matchRepository = matchRepository;
+        this.teamMatchScoreRepository = teamMatchScoreRepository;
+        this.roundScoreRepository = roundScoreRepository;
+        this.archerMatchScoreRepository = archerMatchScoreRepository;
     }
 
-    // =========================
-    // SCORE MAPPING (ENUM-BASED)
-    // =========================
-    private int calculateScore(ArrowType type) {
-        return switch (type) {
-            case BULL -> 5;
-            case RED -> 4;
-            case YELLOW -> 3;
-            case OTHER -> 2;
-        };
-    }
-
-    // =========================
-    // VALIDATION (2 arrows rule)
-    // =========================
-    private void validateArrow(Long roundId, String archerCid) {
-
-        long count = arrowRepository
-                .countByRoundIdAndArcherCid(roundId, archerCid);
-
-        if (count >= 2) {
-            throw new RuntimeException("Each archer can shoot only 2 arrows per round");
-        }
-    }
-
-    // =========================
-    // SUBMIT ARROW (UPDATED)
-    // =========================
-    public Arrow submitArrow(
-            Long matchId,
-            Long roundId,
-            String archerCid,
-            Long teamId,
-            ArrowType type
-    ) {
-
-        validateArrow(roundId, archerCid);
-
-        Arrow arrow = new Arrow();
-
-        arrow.setMatchId(matchId);
-        arrow.setRoundId(roundId);
-        arrow.setArcherCid(archerCid);
-        arrow.setTeamId(teamId);
-
-        int arrowNumber = getNextArrowNumber(roundId, archerCid);
-        arrow.setArrowNumber(arrowNumber);
-
-        arrow.setType(type);
-        arrow.setScore(calculateScore(type));
-
-        Arrow saved = arrowRepository.save(arrow);
-
-        recalculateAllScores(matchId);
-
-        return saved;
-    }
-
-    // =========================
-    // ARROW NUMBER (1 or 2)
-    // =========================
-    private int getNextArrowNumber(Long roundId, String archerCid) {
-
-        long count = arrowRepository
-                .countByRoundIdAndArcherCid(roundId, archerCid);
-
-        return (int) count + 1;
-    }
-
-    // =========================
-    // RE-CALC ALL
-    // =========================
-    private void recalculateAllScores(Long matchId) {
-        recalcArcherScores(matchId);
-        recalcTeamScores(matchId);
-        recalcMatchScore(matchId);
-    }
-
-    // =========================
-    // ARCHER SCORE
-    // =========================
-    private void recalcArcherScores(Long matchId) {
-
-        List<Object[]> data = arrowRepository.sumByArcher(matchId);
-
-        for (Object[] row : data) {
-
-            String archerCid = (String) row[0];
-            Integer total = ((Number) row[1]).intValue();
-
-            ArcherScore score = archerScoreRepository
-                    .findByMatchIdAndArcherCid(matchId, archerCid)
-                    .orElse(new ArcherScore());
-
-            score.setMatchId(matchId);
-            score.setArcherCid(archerCid);
-            score.setTotalScore(total);
-
-            archerScoreRepository.save(score);
-        }
-    }
-
-    // =========================
-    // TEAM SCORE
-    // =========================
-    private void recalcTeamScores(Long matchId) {
-
-        List<Object[]> data = arrowRepository.sumByTeam(matchId);
-
-        for (Object[] row : data) {
-
-            String teamId = (String) row[0];
-            Integer total = ((Number) row[1]).intValue();
-
-            TeamScore score = teamScoreRepository
-                    .findByMatchIdAndTeamId(matchId, teamId)
-                    .orElse(new TeamScore());
-
-            score.setMatchId(matchId);
-            score.setTeamId(Long.valueOf(teamId));
-            score.setTotalScore(total);
-
-            teamScoreRepository.save(score);
-        }
-    }
-
-    // =========================
-    // MATCH SCORE
-    // =========================
-    private void recalcMatchScore(Long matchId) {
-
-        Integer total = arrowRepository.sumMatchScore(matchId);
-
-        MatchScore score = matchScoreRepository
-                .findByMatchId(matchId)
-                .orElse(new MatchScore());
-
-        score.setMatchId(matchId);
-        score.setTotalScore(total);
-
-        matchScoreRepository.save(score);
-    }
-
-    // =========================
-    // MATCH SUMMARY
-    // =========================
-    public MatchScoreSummary getMatchSummary(Long matchId) {
-
-        MatchScoreSummary summary = new MatchScoreSummary();
-
-        summary.setArcherScores(archerScoreRepository.findByMatchId(matchId));
-        summary.setTeamScores(teamScoreRepository.findByMatchId(matchId));
-
-        summary.setMatchScore(
-                matchScoreRepository.findByMatchId(matchId).orElse(null)
+    // CREATE SCORE MATCH
+    public Match createScoreMatch(CreateMatch createMatch) {
+        Match matchObject = new Match();
+        matchObject.setTournamentId(createMatch.getTournamentId());
+        matchObject.setMatchDate(createMatch.getMatchDate());
+        matchObject.setStatus(createMatch.getStatus());
+        matchObject.setTotalRounds(createMatch.getTotalRounds());
+        matchObject.setQualifyingTeamNumbers(createMatch.getQualifyingTeamNumbers());
+        matchObject.setParticipatingTeams(
+                createMatch.getMatchParticipantTeam()!=null
+                ? new HashSet<>(createMatch.getMatchParticipantTeam())
+                        : new HashSet<>()
         );
-
-        return summary;
+        return matchRepository.save(matchObject);
     }
+    // CREATE TEAM'S MATCH SCORE
+    public TeamMatchScore createTeamMatchScore(CreateTeamMatchScore createTeamMatchScore) {
+        TeamMatchScore teamMatchScore = new TeamMatchScore();
+        teamMatchScore.setMatchId(createTeamMatchScore.getMatchId());
+        teamMatchScore.setTeamId(createTeamMatchScore.getTeamId());
+        teamMatchScore.setTeamScore(createTeamMatchScore.getTeamScore());
+        teamMatchScore.setQualified(createTeamMatchScore.getQualified());
+        return teamMatchScoreRepository.save(teamMatchScore);
+    }
+
+    // CREATE ROUND SCORE
+    /*
+    public RoundScore createRoundScore(CreateRoundScore createRoundScore)
+    {
+        RoundScore roundScore = new RoundScore();
+        roundScore.setRoundNumber(createRoundScore.getRoundNumber());
+        roundScore.setArcherMatchScore(createRoundScore.getArcherMatchScore());
+        roundScore.setArrow1(createRoundScore.getArrow1());
+        roundScore.setArrow2(createRoundScore.getArrow2());
+        return roundScoreRepository.save(roundScore);
+    }*/
+
+    // CREATE ARCHER MATCH SCORE
+    public ArcherMatchScore createArcherMatchScore(CreateArcherMatchScore dto) {
+
+        ArcherMatchScore matchScore = new ArcherMatchScore();
+
+        matchScore.setMatchId(dto.getMatchId());
+        matchScore.setTeamId(dto.getTeamId());
+        matchScore.setArcherCid(dto.getArcherCid());
+
+        List<RoundScore> rounds = new ArrayList<>();
+
+        if (dto.getRoundScores() != null) {
+            for (RoundScore r : dto.getRoundScores()) {
+
+                RoundScore round = new RoundScore();
+                round.setRoundNumber(r.getRoundNumber());
+                round.setArrow1(r.getArrow1());
+                round.setArrow2(r.getArrow2());
+
+                // VERY IMPORTANT: set back-reference
+                round.setArcherMatchScore(matchScore);
+
+                rounds.add(round);
+            }
+        }
+
+        matchScore.setRoundScores(rounds);
+
+        // IMPORTANT: cascade saves everything
+        return archerMatchScoreRepository.save(matchScore);
+    }
+
+
+
+
 }

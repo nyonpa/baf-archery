@@ -1,11 +1,21 @@
 package com.archery.score_service.controller;
 
-import com.archery.score_service.dto.ArrowRequest;
-import com.archery.score_service.model.Arrow;
-import com.archery.score_service.model.ArrowType;
+
+import com.archery.score_service.Response.ResponseArcherMatchScore;
+import com.archery.score_service.Response.ResponseRoundScore;
+import com.archery.score_service.Response.ResponseTeamMatchScore;
+import com.archery.score_service.dto.CreateArcherMatchScore;
+import com.archery.score_service.dto.CreateMatch;
+import com.archery.score_service.Response.ResponseMatch;
+import com.archery.score_service.dto.CreateRoundScore;
+import com.archery.score_service.dto.CreateTeamMatchScore;
 import com.archery.score_service.service.ScoreService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/scores")
@@ -17,29 +27,35 @@ public class ScoreController {
         this.scoreService = scoreService;
     }
 
-    // =====================================
-    // SUBMIT ARROW (MAIN SCORING ENDPOINT)
-    // =====================================
-    @PostMapping("/arrow")
-    public ResponseEntity<Arrow> submitArrow(@RequestBody ArrowRequest request) {
-
-        Arrow saved = scoreService.submitArrow(
-                request.getMatchId(),
-                request.getRoundId(),
-                request.getArcherCid(),
-                request.getTeamId(),
-                request.getType()
-        );
-
-        return ResponseEntity.ok(saved);
+    @PostMapping("/createMatch")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_ORGANIZER')")
+    public ResponseEntity<ResponseMatch> createMatch(@RequestBody
+                                                         CreateMatch createMatch)
+    {
+        return  ResponseEntity.ok(new ResponseMatch(
+                scoreService.createScoreMatch(createMatch)
+                                   )
+                                );
+    }
+    @PostMapping("/createTeamMatchScore")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_ORGANIZER')")
+    public ResponseEntity<ResponseTeamMatchScore> createTeamMatchScore(CreateTeamMatchScore createTeamMatchScore)
+    {
+        return ResponseEntity.ok(new ResponseTeamMatchScore(scoreService.createTeamMatchScore(createTeamMatchScore)));
+    }
+    /*
+    //CREATE ROUND SCORE
+    public ResponseEntity<ResponseRoundScore> createRoundScore(CreateRoundScore createRoundScore)
+    {
+        return ResponseEntity.ok(new ResponseRoundScore(scoreService.createRoundScore(createRoundScore)));
     }
 
-    // =====================================
-    // MATCH SUMMARY (ARCHER + TEAM + MATCH)
-    // =====================================
-    @GetMapping("/match/{matchId}/summary")
-    public ResponseEntity<?> getMatchSummary(@PathVariable Long matchId) {
-
-        return ResponseEntity.ok(scoreService.getMatchSummary(matchId));
+     */
+    //CREATE ARCHER MATCH SCORE
+    @PostMapping("/createArcherMatchScore")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_ORGANIZER')")
+    public ResponseEntity<ResponseArcherMatchScore> createArcherMatchScore(CreateArcherMatchScore createArcherMatchScore)
+    {
+        return ResponseEntity.ok(new ResponseArcherMatchScore(scoreService.createArcherMatchScore(createArcherMatchScore)));
     }
 }
